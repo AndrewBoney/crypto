@@ -102,46 +102,7 @@ pca_data <- pca_data %>%
 
 rm(list = c(setdiff(ls(), "pca_data")))
 
-# Model ----
-## Split Data ----
-split <- initial_split(pca_data, prop = 0.8)
-
-train <- training(split)
-test <- testing(split)
-
-## Build Model ----
-set.seed(1)
-rec <- recipe(Bitcoin ~ ., train) %>% 
-  update_role(time, new_role = "id")
-
-set.seed(2)
-rf <- rand_forest(trees = 200) %>% 
-  set_engine("ranger", num.threads = parallel::detectCores()-1) %>% 
-  set_mode("regression")
-
-wf <- workflow() %>%
-  add_recipe(rec) %>% 
-  add_model(rf)
-
-tic("Fit RF")
-fit_rf <- wf %>% 
-  fit(train)
-toc()
-
-baked <- bake(rec %>% prep(), test)
-prep(rec)
-
-
-preds <- get_pred_table(test, fit_rf)
-get_metrics(preds_short)
-
-
-lag_return_df <- wide_close %>% 
-  map2_dfc(1, 30, )
-  
-  
-  mutate(across(all_of(coins), ~log_return(.x, 5), .names = paste0("{.col}_", 5)),
-         across(all_of(coins), ~log_return(lag(.x, 5), 10), .names = paste0("{.col}_", 10)),
-         across(all_of(coins), ~log_return(lag(.x, 10), 15), .names = paste0("{.col}_", 15)))
-
+# Save ----
+write_fst(pca_data, here("data", "working", "pca_data.fst"), compress = 100)
+fwrite(pca_data, here("data", "working", "pca_data.csv"))
 
